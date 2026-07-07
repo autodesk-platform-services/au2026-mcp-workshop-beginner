@@ -1,13 +1,17 @@
-import { AuthenticationClient, Scopes } from '@aps_sdk/authentication';
+import { SecureServiceAccountClient, Utils, Scopes } from '@aps_sdk/secure-service-account';
 import { DataManagementClient } from '@aps_sdk/data-management';
+import { readFileSync } from 'fs';
 
 const SCOPES = [Scopes.DataRead];
 
 export class AppAuthenticationProvider {
-    constructor(clientId, clientSecret) {
-        this.authClient = new AuthenticationClient();
+    constructor(clientId, clientSecret, serviceAccountId, keyId, privateKeyPath) {
+        this.ssaClient = new SecureServiceAccountClient();
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        this.serviceAccountId = serviceAccountId;
+        this.keyId = keyId;
+        this.privateKey = readFileSync(privateKeyPath, 'utf8');
         this.cache = {
             accessToken: null,
             expiresAt: 0,
@@ -16,7 +20,8 @@ export class AppAuthenticationProvider {
 
     async getAccessToken() {
         if (this.cache.expiresAt < Date.now()) {
-            const credentials = await this.authClient.getTwoLeggedToken(this.clientId, this.clientSecret, SCOPES);
+            const jwtAssertion = Utils.generateJwtAssertion(this.clientId, this.serviceAccountId, this.privateKey, this.keyId, SCOPES);
+            const credentials = await this.ssaClient.exchangeJwtAssertion(jwtAssertion, this.clientId, this.clientSecret, { scope: SCOPES });
             this.cache.accessToken = credentials.access_token;
             this.cache.expiresAt = Date.now() + credentials.expires_in * 1000;
         }

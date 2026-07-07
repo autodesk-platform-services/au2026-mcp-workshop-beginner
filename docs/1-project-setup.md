@@ -62,8 +62,8 @@ Create `package.json` in the project root with the following content:
     "start": "node index.js"
   },
   "dependencies": {
-    "@aps_sdk/authentication": "^1.0.0",
     "@aps_sdk/data-management": "^1.1.0",
+    "@aps_sdk/secure-service-account": "^1.0.0-beta.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.4.0"
   }
