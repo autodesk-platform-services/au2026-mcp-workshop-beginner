@@ -28,7 +28,7 @@ Vibe coding works best when the prompt names the file you want changed, the shap
 
 - **List issues** (new tool against a new API):
 
-  > Add a new MCP tool `list-issues` in `mcp.js`. It takes a `projectId` (string) and returns open issues from the ACC Issues API: `GET https://developer.api.autodesk.com/construction/issues/v1/projects/{projectId}/issues?filter[status]=open`. Reuse the existing two-legged token helper in `aps.js`. Return an array of `{ id, title, status, assignedTo }`. Add a short JSDoc-style description so Copilot Chat can discover it.
+  > Add a new MCP tool `list-issues` in `mcp.js`. It takes a `projectId` (string) and returns open issues from the ACC Issues API: `GET https://developer.api.autodesk.com/construction/issues/v1/projects/{projectId}/issues?filter[status]=open`. Reuse the existing authentication provider in `aps.js`. Return an array of `{ id, title, status, assignedTo }`. Add a short JSDoc-style description so Copilot Chat can discover it.
 
 - **Search files by name** (recursive folder walk):
 
