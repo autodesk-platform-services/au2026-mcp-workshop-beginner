@@ -38,7 +38,7 @@ Start a new GitHub Codespace:
 3. Select the **Codespaces** tab.
 4. Click **Create codespace on main**.
 
-GitHub will build and launch a cloud development environment with Node.js pre-installed. This takes about a minute the first time.
+GitHub will build and launch a cloud development environment with Python pre-installed. This takes about a minute the first time.
 
 You can work directly in the browser, but opening the Codespace in your local VS Code gives you a better experience with GitHub Copilot.
 
@@ -50,48 +50,37 @@ You can work directly in the browser, but opening the Codespace in your local VS
 
 ## Step 3: Dependencies
 
-Create `package.json` in the project root with the following content:
+Create `requirements.txt` in the project root with the following content:
 
-```json
-{
-  "name": "au2026-mcp-workshop-beginner",
-  "version": "1.0.0",
-  "description": "APS MCP Workshop — Beginner Session (AU2026)",
-  "type": "module",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "@aps_sdk/authentication": "^1.0.0",
-    "@aps_sdk/data-management": "^1.1.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^4.4.0"
-  }
-}
+```text
+mcp>=1.28.0,<2.0.0
+requests>=2.31.0,<3.0.0
 ```
 
 Open new terminal in VS Code (`` Ctrl+` `` on Windows/Linux, `` Cmd+` `` on macOS, or **Terminal → New Terminal** from the menu bar), and run the following command:
 
 ```bash
-npm install
+pip install -r requirements.txt
 ```
 
 You should see output ending with something like:
 
 ```bash
-added 42 packages, and audited 43 packages in 5s
+Successfully installed mcp-1.28.0 requests-2.31.0 ...
 ```
 
-The exact numbers will vary. As long as there are no errors, you're good.
+The exact versions will vary. As long as there are no errors, you're good.
 
 ## Step 4: Simple app
 
 The code in this file is just a quick sanity check — it will be replaced later.
 
-Create `index.js` in the project root with the following content:
+Create `main.py` in the project root with the following content:
 
-```js
-console.log('APS_CLIENT_ID:', process.env.APS_CLIENT_ID);
+```python
+import os
+
+print('APS_CLIENT_ID:', os.environ.get('APS_CLIENT_ID'))
 ```
 
 ## Checkpoint
@@ -105,20 +94,16 @@ You should now have:
 The folder structure should look like this:
 
 ```text
-node_modules/
-index.js
-package-lock.json
-package.json
+main.py
+requirements.txt
 ```
 
 ### Try it out
 
-Run the `index.js` script in the terminal:
+Run the `main.py` script in the terminal:
 
 ```bash
-node index.js
-# or
-npm start
+python main.py
 ```
 
 Expected output:
@@ -127,7 +112,7 @@ Expected output:
 APS_CLIENT_ID: <your-client-id>
 ```
 
-If you see `APS_CLIENT_ID: undefined`, the secrets were not picked up. The most common cause is that the Codespace was created *before* the secrets were added. Stop the Codespace and create a new one — secrets are only injected at start-up.
+If you see `APS_CLIENT_ID: None`, the secrets were not picked up. The most common cause is that the Codespace was created *before* the secrets were added. Stop the Codespace and create a new one — secrets are only injected at start-up.
 
 ### Additional resources
 

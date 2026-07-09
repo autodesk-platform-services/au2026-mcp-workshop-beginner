@@ -1,4 +1,5 @@
-node_modules/
+__pycache__/
+.venv/
 .env
 *.log
 .DS_Store

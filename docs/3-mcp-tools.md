@@ -16,114 +16,111 @@ The **Model Context Protocol (MCP)** is an open standard that lets AI clients �
 
 ### The factory function pattern
 
-> **Design note:** You'll write a `createMcpServer(authenticationProvider)` factory function that creates and returns the server — it does **not** start it. This separation is intentional.
+> **Design note:** You'll write a `create_mcp_server(authentication_provider)` factory function that creates and returns the server — it does **not** start it. This separation is intentional.
 >
 > The same factory can later be used with different transports:
 >
 > - **STDIO** for local development (this section)
 > - **Streamable HTTP** for a deployed, shared server (the advanced session)
 >
-> Because the server logic lives in `createMcpServer`, swapping transports requires changing only `index.js` — the server tools themselves are untouched.
+> Because the server logic lives in `create_mcp_server`, swapping transports requires changing only `main.py` — the server tools themselves are untouched.
 
 ## Step 1: MCP Server
 
-Create a new file called `mcp.js` in the project root. Start with the imports and a skeleton factory function:
+Create a new file called `server.py` in the project root. Start with the imports and a skeleton factory function:
 
-```js
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-import { getHubsProjects, getFolderContents } from './aps.js';
+```python
+import json
+from typing import Annotated
 
-export function createMcpServer(authenticationProvider) {
-    const server = new McpServer({
-        name: 'aps-mcp-server',
-        description: 'MCP server for Autodesk Platform Services',
-        version: '1.0.0'
-    });
+from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
-    // TODO: register the list-hubs-projects tool
+from aps import get_hubs_projects, get_folder_contents
 
-    // TODO: register the list-folder-contents tool
 
-    return server;
-}
+def create_mcp_server(authentication_provider):
+    mcp = FastMCP(name='aps-mcp-server', instructions='MCP server for Autodesk Platform Services')
+
+    # TODO: register the list-hubs-projects tool
+
+    # TODO: register the list-folder-contents tool
+
+    return mcp
 ```
 
-`McpServer` is the main class from the MCP SDK. You give it a name and version, then register tools on it before returning it.
+`FastMCP` is the main class from the MCP Python SDK. You give it a name and instructions, then register tools on it before returning it.
 
 ## Step 2: MCP tools
 
-Replace the first `// TODO` comment with the following tool registration:
+Replace the first `# TODO` comment with the following tool registration:
 
-```js
-    server.registerTool(
-        'list-hubs-projects',
-        {
-            description: 'Lists all hubs and their projects available to the APS application.',
-        },
-        async () => {
-            const hubs = await getHubsProjects(authenticationProvider);
-            return { content: [{ type: 'text', text: JSON.stringify(hubs, null, 2) }] };
-        }
-    );
+```python
+    @mcp.tool(
+        name='list-hubs-projects',
+        description='Lists all hubs and their projects available to the APS application.',
+        structured_output=False,
+    )
+    def list_hubs_projects() -> str:
+        hubs = get_hubs_projects(authentication_provider)
+        return json.dumps(hubs, indent=2)
 ```
 
-`server.registerTool` takes three arguments:
+`@mcp.tool` is a decorator that registers the function it wraps as a tool:
 
-1. **Name** — the identifier the AI uses to call this tool
-2. **Options object** — contains at minimum a `description` (plain-language explanation the AI uses to decide when to call the tool); tools with inputs also include an `inputSchema`
-3. **Handler** — an async function that does the work and returns `{ content: [...] }`
+1. **`name`** — the identifier the AI uses to call this tool
+2. **`description`** — a plain-language explanation the AI uses to decide when to call the tool
+3. **`structured_output=False`** — tells FastMCP to return the string as plain text content, instead of trying to infer a structured JSON schema from the return type
+4. **The function itself** — does the work and returns the result
 
-Replace the second `// TODO` comment with:
+Replace the second `# TODO` comment with:
 
-```js
-    server.registerTool(
-        'list-folder-contents',
-        {
-            description: 'Lists the contents of a folder in a project, or top-level folders if no folder ID is provided.',
-            inputSchema: z.object({
-                hubId: z.string().describe('Hub ID.'),
-                projectId: z.string().describe('Project ID.'),
-                folderId: z.string().optional().describe('Folder ID. Omit to list top-level folders.'),
-            })
-        },
-        async ({ hubId, projectId, folderId }) => {
-            const items = await getFolderContents(hubId, projectId, folderId, authenticationProvider);
-            return { content: [{ type: 'text', text: JSON.stringify(items, null, 2) }] };
-        }
-    );
+```python
+    @mcp.tool(
+        name='list-folder-contents',
+        description='Lists the contents of a folder in a project, or top-level folders if no folder ID is provided.',
+        structured_output=False,
+    )
+    def list_folder_contents(
+        hub_id: Annotated[str, Field(description='Hub ID.')],
+        project_id: Annotated[str, Field(description='Project ID.')],
+        folder_id: Annotated[str | None, Field(description='Folder ID. Omit to list top-level folders.')] = None,
+    ) -> str:
+        items = get_folder_contents(hub_id, project_id, folder_id, authentication_provider)
+        return json.dumps(items, indent=2)
 ```
 
-This tool has a typed input schema defined with [Zod](https://zod.dev). The schema is passed as `inputSchema` inside the options object, wrapped in `z.object({...})`. The `.describe()` calls on each field tell the AI what to pass — the AI reads these descriptions to fill in arguments automatically from context.
+FastMCP derives the tool's input schema from the function signature — there's no separate schema object to build, unlike Zod in a JavaScript MCP server. `Annotated[str, Field(description=...)]` attaches the per-argument description the AI reads to fill in arguments automatically from context.
 
-`folderId` is marked `.optional()`, which lets the AI omit it when it wants top-level folders rather than the contents of a specific folder.
+`folder_id` defaults to `None`, which lets the AI omit it when it wants top-level folders rather than the contents of a specific folder.
 
 ## Step 3: Update the app
 
-The `index.js` you created in the previous section was a temporary sanity check. Replace its entire contents with the real entry point:
+The `main.py` you created in the previous section was a temporary sanity check. Replace its entire contents with the real entry point:
 
-```js
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { AppAuthenticationProvider } from './aps.js';
-import { createMcpServer } from './mcp.js';
+```python
+import os
+import sys
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
-if (!APS_CLIENT_ID || !APS_CLIENT_SECRET) {
-    console.error('APS_CLIENT_ID and APS_CLIENT_SECRET environment variables are required.');
-    process.exit(1);
-}
+from aps import AppAuthenticationProvider
+from server import create_mcp_server
 
-const authenticationProvider = new AppAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
-const server = createMcpServer(authenticationProvider);
-const transport = new StdioServerTransport();
-await server.connect(transport);
+APS_CLIENT_ID = os.environ.get('APS_CLIENT_ID')
+APS_CLIENT_SECRET = os.environ.get('APS_CLIENT_SECRET')
+if not APS_CLIENT_ID or not APS_CLIENT_SECRET:
+    print('APS_CLIENT_ID and APS_CLIENT_SECRET environment variables are required.', file=sys.stderr)
+    sys.exit(1)
+
+authentication_provider = AppAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET)
+mcp_server = create_mcp_server(authentication_provider)
+mcp_server.run(transport='stdio')
 ```
 
 What each part does:
 
-- `StdioServerTransport` wires the server to stdin/stdout
 - `AppAuthenticationProvider` is passed into the factory so the server can make authenticated APS calls
-- `server.connect(transport)` starts the MCP message loop — the process now waits for tool calls from a client
+- `create_mcp_server` builds the `FastMCP` instance and registers its tools
+- `mcp_server.run(transport='stdio')` starts the MCP message loop over stdin/stdout — the process now waits for tool calls from a client
 
 ## Step 4: Copilot integration
 
@@ -134,16 +131,16 @@ Create the `.vscode/` directory if it doesn't exist, then create `.vscode/mcp.js
   "servers": {
     "APS MCP Server": {
       "type": "stdio",
-      "command": "node",
-      "args": ["index.js"]
+      "command": "python",
+      "args": ["main.py"]
     }
   }
 }
 ```
 
-VS Code reads this file and, when you open Copilot Chat in agent mode, it automatically starts `node index.js` as a child process and connects to it over STDIO. You don't need to run the server yourself in a terminal.
+VS Code reads this file and, when you open Copilot Chat in agent mode, it automatically starts `python main.py` as a child process and connects to it over STDIO. You don't need to run the server yourself in a terminal.
 
-> **After editing `mcp.js`, `aps.js`, or `index.js`:** click the **Restart** action above the server definition in `mcp.json` (or stop and start it again). Copilot keeps using the previously-loaded build of the server until you restart it, which is the most common source of "my change didn't take effect" confusion.
+> **After editing `server.py`, `aps.py`, or `main.py`:** click the **Restart** action above the server definition in `mcp.json` (or stop and start it again). Copilot keeps using the previously-loaded build of the server until you restart it, which is the most common source of "my change didn't take effect" confusion.
 
 > **Note:** The `APS_CLIENT_ID` and `APS_CLIENT_SECRET` environment variables are injected by your Codespace secrets — you don't need to add them here.
 
@@ -151,80 +148,76 @@ VS Code reads this file and, when you open Copilot Chat in agent mode, it automa
 
 You should now have:
 
-- [x] `mcp.js` with `createMcpServer` factory and two registered tools
-- [x] `index.js` using `StdioServerTransport` to start the server
+- [x] `server.py` with `create_mcp_server` factory and two registered tools
+- [x] `main.py` using `mcp_server.run(transport='stdio')` to start the server
 - [x] `.vscode/mcp.json` pointing VS Code at your server
 
 <details>
     <summary>
-        Reference: full <code>mcp.js</code>
+        Reference: full <code>server.py</code>
     </summary>
 
-```js
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-import { getHubsProjects, getFolderContents } from './aps.js';
+```python
+import json
+from typing import Annotated
 
-export function createMcpServer(authenticationProvider) {
-    const server = new McpServer({
-        name: 'aps-mcp-server',
-        description: 'MCP server for Autodesk Platform Services',
-        version: '1.0.0'
-    });
+from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
-    server.registerTool(
-        'list-hubs-projects',
-        {
-            description: 'Lists all hubs and their projects available to the APS application.',
-        },
-        async () => {
-            const hubs = await getHubsProjects(authenticationProvider);
-            return { content: [{ type: 'text', text: JSON.stringify(hubs, null, 2) }] };
-        }
-    );
+from aps import get_hubs_projects, get_folder_contents
 
-    server.registerTool(
-        'list-folder-contents',
-        {
-            description: 'Lists the contents of a folder in a project, or top-level folders if no folder ID is provided.',
-            inputSchema: z.object({
-                hubId: z.string().describe('Hub ID.'),
-                projectId: z.string().describe('Project ID.'),
-                folderId: z.string().optional().describe('Folder ID. Omit to list top-level folders.'),
-            })
-        },
-        async ({ hubId, projectId, folderId }) => {
-            const items = await getFolderContents(hubId, projectId, folderId, authenticationProvider);
-            return { content: [{ type: 'text', text: JSON.stringify(items, null, 2) }] };
-        }
-    );
 
-    return server;
-}
+def create_mcp_server(authentication_provider):
+    mcp = FastMCP(name='aps-mcp-server', instructions='MCP server for Autodesk Platform Services')
+
+    @mcp.tool(
+        name='list-hubs-projects',
+        description='Lists all hubs and their projects available to the APS application.',
+        structured_output=False,
+    )
+    def list_hubs_projects() -> str:
+        hubs = get_hubs_projects(authentication_provider)
+        return json.dumps(hubs, indent=2)
+
+    @mcp.tool(
+        name='list-folder-contents',
+        description='Lists the contents of a folder in a project, or top-level folders if no folder ID is provided.',
+        structured_output=False,
+    )
+    def list_folder_contents(
+        hub_id: Annotated[str, Field(description='Hub ID.')],
+        project_id: Annotated[str, Field(description='Project ID.')],
+        folder_id: Annotated[str | None, Field(description='Folder ID. Omit to list top-level folders.')] = None,
+    ) -> str:
+        items = get_folder_contents(hub_id, project_id, folder_id, authentication_provider)
+        return json.dumps(items, indent=2)
+
+    return mcp
 ```
 
 </details>
 
 <details>
     <summary>
-        Reference: full <code>index.js</code>
+        Reference: full <code>main.py</code>
     </summary>
 
-```js
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { AppAuthenticationProvider } from './aps.js';
-import { createMcpServer } from './mcp.js';
+```python
+import os
+import sys
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
-if (!APS_CLIENT_ID || !APS_CLIENT_SECRET) {
-    console.error('APS_CLIENT_ID and APS_CLIENT_SECRET environment variables are required.');
-    process.exit(1);
-}
+from aps import AppAuthenticationProvider
+from server import create_mcp_server
 
-const authenticationProvider = new AppAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
-const server = createMcpServer(authenticationProvider);
-const transport = new StdioServerTransport();
-await server.connect(transport);
+APS_CLIENT_ID = os.environ.get('APS_CLIENT_ID')
+APS_CLIENT_SECRET = os.environ.get('APS_CLIENT_SECRET')
+if not APS_CLIENT_ID or not APS_CLIENT_SECRET:
+    print('APS_CLIENT_ID and APS_CLIENT_SECRET environment variables are required.', file=sys.stderr)
+    sys.exit(1)
+
+authentication_provider = AppAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET)
+mcp_server = create_mcp_server(authentication_provider)
+mcp_server.run(transport='stdio')
 ```
 
 </details>
@@ -245,7 +238,7 @@ If the server is running correctly, Copilot should call your MCP tool and respon
 > **Debugging tip — MCP Inspector.** If something isn't working, the MCP Inspector lets you test the server directly, bypassing Copilot entirely:
 >
 > ```bash
-> npx @modelcontextprotocol/inspector node index.js
+> npx @modelcontextprotocol/inspector python main.py
 > ```
 >
 > The command launches two things in your Codespace: the Inspector's proxy (which spawns your server over STDIO) and a web UI on port **6274**. Because it's running inside the Codespace, the web UI is **not** immediately available in your local browser — you need to forward the port first:
@@ -259,5 +252,5 @@ If the server is running correctly, Copilot should call your MCP tool and respon
 ### Additional resources
 
 - [Model Context Protocol documentation](https://modelcontextprotocol.io)
-- [MCP SDK for JavaScript](https://github.com/modelcontextprotocol/typescript-sdk)
+- [MCP SDK for Python](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP Inspector](https://github.com/modelcontextprotocol/inspector)

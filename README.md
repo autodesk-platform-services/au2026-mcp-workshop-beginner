@@ -11,7 +11,7 @@ The server connects GitHub Copilot (or any MCP-compatible client) to your APS hu
 | Tool | Inputs | Description |
 | --- | --- | --- |
 | `list-hubs-projects` | — | Lists all hubs and their projects accessible to the APS application |
-| `list-folder-contents` | `hubId`, `projectId`, `folderId?` | Lists folder contents; omit `folderId` to get top-level folders |
+| `list-folder-contents` | `hub_id`, `project_id`, `folder_id?` | Lists folder contents; omit `folder_id` to get top-level folders |
 
 ### Agent skill
 
@@ -19,14 +19,14 @@ The server connects GitHub Copilot (or any MCP-compatible client) to your APS hu
 
 ## Prerequisites
 
-- Node.js 20+
+- Python 3.10+
 - An APS application with `data:read` scope ([create one here](https://aps.autodesk.com/myapps))
 - Admin access to an Autodesk Forma hub
 
 ## Setup
 
 ```bash
-npm install
+pip install -r requirements.txt
 ```
 
 ## VS Code integration
@@ -36,12 +36,12 @@ npm install
 ## Architecture
 
 ```text
-index.js          Entry point — wires credentials → auth provider → MCP server → STDIO transport
-mcp.js            MCP server factory — registers tools, never calls server.connect()
-aps.js            APS layer — 2-legged OAuth provider + Data Management helpers
+main.py            Entry point — wires credentials → auth provider → MCP server → STDIO transport
+server.py          MCP server factory — registers tools, never calls mcp.run()
+aps.py             APS layer — 2-legged OAuth provider + Data Management helpers
 ```
 
-`AppAuthenticationProvider` (in `aps.js`) caches tokens in memory and exposes a single `getAccessToken()` method. The Data Management client calls it internally — raw tokens never leave the class. The advanced workshop session swaps in a 3-legged provider without changing any other file.
+`AppAuthenticationProvider` (in `aps.py`) caches tokens in memory and exposes a single `get_access_token()` method. The Data Management helpers call it internally — raw tokens never leave the class. The advanced workshop session swaps in a 3-legged provider without changing any other file.
 
 ## Tutorial
 

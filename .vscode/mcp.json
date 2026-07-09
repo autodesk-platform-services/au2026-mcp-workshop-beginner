@@ -2,8 +2,8 @@
   "servers": {
     "APS MCP Server": {
       "type": "stdio",
-      "command": "node",
-      "args": ["index.js"]
+      "command": "python",
+      "args": ["main.py"]
     }
   }
 }

@@ -24,15 +24,15 @@ Vibe coding works best when the prompt names the file you want changed, the shap
 
 - **Search project by name** (extend an existing tool):
 
-  > In `mcp.js`, add an optional `nameFilter` string parameter to the `list-projects` tool. When provided, only return projects whose `attributes.name` contains the filter (case-insensitive). Keep the existing behaviour when it's omitted, and update the tool description so Copilot Chat knows when to pass the filter.
+  > In `server.py`, add an optional `name_filter` string parameter to the `list-projects` tool. When provided, only return projects whose `attributes.name` contains the filter (case-insensitive). Keep the existing behaviour when it's omitted, and update the tool description so Copilot Chat knows when to pass the filter.
 
 - **List issues** (new tool against a new API):
 
-  > Add a new MCP tool `list-issues` in `mcp.js`. It takes a `projectId` (string) and returns open issues from the ACC Issues API: `GET https://developer.api.autodesk.com/construction/issues/v1/projects/{projectId}/issues?filter[status]=open`. Reuse the existing two-legged token helper in `aps.js`. Return an array of `{ id, title, status, assignedTo }`. Add a short JSDoc-style description so Copilot Chat can discover it.
+  > Add a new MCP tool `list-issues` in `server.py`. It takes a `project_id` (string) and returns open issues from the ACC Issues API: `GET https://developer.api.autodesk.com/construction/issues/v1/projects/{project_id}/issues?filter[status]=open`. Reuse the existing two-legged token helper in `aps.py`. Return a list of `{id, title, status, assigned_to}` dicts. Add a clear `description` so Copilot Chat can discover it.
 
 - **Search files by name** (recursive folder walk):
 
-  > Add a `find-items` tool in `mcp.js` that takes `hubId`, `projectId`, and `query` (string). Walk the project's top folders with the Data Management API and return items whose `displayName` contains `query` (case-insensitive). Cap the recursion depth at 5 and the total results at 50 so the tool stays responsive.
+  > Add a `find-items` tool in `server.py` that takes `hub_id`, `project_id`, and `query` (string). Walk the project's top folders with the Data Management API and return items whose `displayName` contains `query` (case-insensitive). Cap the recursion depth at 5 and the total results at 50 so the tool stays responsive.
 
 - **Recent changes skill** (extend the skill, not the server):
 
@@ -40,7 +40,7 @@ Vibe coding works best when the prompt names the file you want changed, the shap
 
 #### Tips for getting good results
 
-- Point Copilot at the exact file (`mcp.js`, `aps.js`, the prompt file) instead of asking for "the server".
+- Point Copilot at the exact file (`server.py`, `aps.py`, the prompt file) instead of asking for "the server".
 - Include the APS endpoint URL and the fields you care about — Copilot can't guess the schema.
 - After it generates code, ask follow-ups like *"what happens if the token expires mid-request?"* or *"add input validation for projectId"* to harden it.
 - If a generated tool doesn't show up in Copilot Chat, reload the MCP server and check the tool name matches the schema.
