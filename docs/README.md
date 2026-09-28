@@ -1,10 +1,12 @@
 # MCP Workshop: Beginner
 
+*Autodesk Flow Variant*
+
 Welcome to the beginner session of the **Autodesk Platform Services MCP Workshop**.
 
 ## What you'll build
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI clients browse folders and files in your Autodesk Forma projects using the [Autodesk Platform Services](https://aps.autodesk.com) Data Management API. By the end of the session you'll also have an agent skill that generates a weekly summary of project activity.
+A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI clients browse projects and assets in your Autodesk Flow Production Tracking using the [REST API](https://developers.shotgridsoftware.com/rest-api/). By the end of the session you'll also have an agent skill that generates a weekly summary of project activity.
 
 ## Sessions
 
