@@ -1,6 +1,6 @@
 # MCP Workshop: Beginner
 
-*Autodesk Flow Variant*
+*Autodesk Flow*
 
 Welcome to the beginner session of the **Autodesk Platform Services MCP Workshop**.
 
