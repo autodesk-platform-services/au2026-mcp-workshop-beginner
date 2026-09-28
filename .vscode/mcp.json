@@ -1,6 +1,6 @@
 {
   "servers": {
-    "APS MCP Server": {
+    "Flow PTR MCP Server": {
       "type": "stdio",
       "command": "node",
       "args": ["index.js"]

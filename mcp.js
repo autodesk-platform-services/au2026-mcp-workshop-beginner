@@ -1,42 +1,40 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { getHubsProjects, getFolderContents } from './aps.js';
+import { getProjects, getProjectAssets } from './fptr.js';
 
 export function createMcpServer(authenticationProvider) {
     const server = new McpServer({
-        name: 'aps-mcp-server',
-        title: 'APS MCP Server',
+        name: 'fptr-mcp-server',
+        title: 'Flow PTR MCP Server',
         version: '1.0.0'
     });
 
     server.registerTool(
-        'list-hubs-projects',
+        'list-projects',
         {
-            title: 'List hubs and projects',
-            description: 'Lists all hubs and their projects available to the APS application.',
+            title: 'List projects',
+            description: 'Lists all projects available to the Flow PTR Script.',
             annotations: { readOnlyHint: true }
         },
         async () => {
-            const hubs = await getHubsProjects(authenticationProvider);
-            return { content: [{ type: 'text', text: JSON.stringify(hubs, null, 2) }] };
+            const projects = await getProjects(authenticationProvider);
+            return { content: [{ type: 'text', text: JSON.stringify(projects, null, 2) }] };
         }
     );
 
     server.registerTool(
-        'list-folder-contents',
+        'list-project-assets',
         {
-            title: 'List folder contents',
-            description: 'Lists the contents of a folder in a project, or top-level folders if no folder ID is provided.',
+            title: 'List project assets',
+            description: 'Lists the assets in a Flow PTR project.',
             inputSchema: z.object({
-                hubId: z.string().describe('Hub ID.'),
                 projectId: z.string().describe('Project ID.'),
-                folderId: z.string().optional().describe('Folder ID. Omit to list top-level folders.'),
             }),
             annotations: { readOnlyHint: true }
         },
-        async ({ hubId, projectId, folderId }) => {
-            const items = await getFolderContents(authenticationProvider, hubId, projectId, folderId);
-            return { content: [{ type: 'text', text: JSON.stringify(items, null, 2) }] };
+        async ({ projectId }) => {
+            const assets = await getProjectAssets(authenticationProvider, projectId);
+            return { content: [{ type: 'text', text: JSON.stringify(assets, null, 2) }] };
         }
     );
 
