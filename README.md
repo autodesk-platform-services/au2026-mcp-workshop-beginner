@@ -1,6 +1,6 @@
 # APS MCP Server
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes Autodesk Forma project data via the [APS Data Management API](https://aps.autodesk.com/en/docs/data/v2/reference/http/). Built for the AU2026 beginner workshop.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes Autodesk Forma project data via the [APS Data Management API](https://aps.autodesk.com/en/docs/data/v2/reference/http/). Built for the beginner workshop.
 
 ## What it does
 

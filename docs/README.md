@@ -1,6 +1,6 @@
-# AU2026 MCP Workshop: Beginner
+# MCP Workshop: Beginner
 
-Welcome to the beginner session of the **Autodesk Platform Services MCP Workshop** at Autodesk University 2026.
+Welcome to the beginner session of the **Autodesk Platform Services MCP Workshop**.
 
 ## What you'll build
 

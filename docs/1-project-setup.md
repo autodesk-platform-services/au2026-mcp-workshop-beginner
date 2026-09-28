@@ -56,7 +56,7 @@ Create `package.json` in the project root with the following content:
 {
   "name": "au2026-mcp-workshop-beginner",
   "version": "1.0.0",
-  "description": "APS MCP Workshop — Beginner Session (AU2026)",
+  "description": "APS MCP Workshop — Beginner Session",
   "type": "module",
   "scripts": {
     "start": "node index.js"
