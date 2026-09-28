@@ -1,6 +1,6 @@
 # Part 4: Agent Skill
 
-In this section you'll create an **agent skill** — a Markdown prompt file that teaches GitHub Copilot (and other AI agents) a named, repeatable task. By the end, you'll have a `.github/skills/forma-weekly-update/SKILL.md` file that Copilot can invoke on demand to generate a weekly activity summary for any of your Forma projects.
+In this section you'll create an **agent skill** — a Markdown prompt file that teaches GitHub Copilot (and other AI agents) a named, repeatable task. By the end, you'll have a `.github/skills/fptr-weekly-update/SKILL.md` file that Copilot can invoke on demand to generate a weekly activity summary for any of your Flow PTR projects.
 
 ## Theory
 
@@ -10,19 +10,19 @@ An agent skill is a plain Markdown file that describes *what* an AI agent should
 
 ### Skills vs MCP tools
 
-Skills and MCP tools solve different problems. MCP gives an agent *access* — a live connection to a data source or API, like the Data Management tools you built in the previous section. A skill teaches the agent *how* to carry out a procedure using the tools it already has access to. Use both together: MCP for connectivity, skills for repeatable know-how.
+Skills and MCP tools solve different problems. MCP gives an agent *access* — a live connection to a data source or API, like the Flow PTR tools you built in the previous section. A skill teaches the agent *how* to carry out a procedure using the tools it already has access to. Use both together: MCP for connectivity, skills for repeatable know-how.
 
 | | MCP tool | Agent skill |
 | --- | --- | --- |
 | Solves | Access to external systems and data | Procedural knowledge — how to do a task |
-| Example in this workshop | `list-hubs-projects`, `list-folder-contents` | `forma-weekly-update` |
+| Example in this workshop | `list-projects`, `list-project-assets` | `fptr-weekly-update` |
 | Runs as | Code the agent calls | Instructions the agent reads and follows |
 
 Read more: [Skills, explained](https://claude.com/blog/skills-explained) on the Claude blog.
 
 ### Auto-discovery in GitHub Copilot
 
-GitHub Copilot in VS Code automatically discovers skill files placed at `.github/skills/<skill-name>/SKILL.md` in your repository. Once discovered, the skill name becomes a callable command — for example, `/forma-weekly-update` — that you can reference directly in Copilot Chat.
+GitHub Copilot in VS Code automatically discovers skill files placed at `.github/skills/<skill-name>/SKILL.md` in your repository. Once discovered, the skill name becomes a callable command — for example, `/fptr-weekly-update` — that you can reference directly in Copilot Chat.
 
 ### Skill file structure
 
@@ -45,28 +45,30 @@ For deeper guidance on skill design patterns and structure, see [agentskills.io]
 Inside your project root, create the directory that Copilot will scan:
 
 ```bash
-mkdir -p .github/skills/forma-weekly-update
+mkdir -p .github/skills/fptr-weekly-update
 ```
 
-Create `.github/skills/forma-weekly-update/SKILL.md` with the following content:
+Create `.github/skills/fptr-weekly-update/SKILL.md` with the following content:
 
 ````markdown
 ---
-name: forma-weekly-update
-description: Generates a summary of file changes in a given Forma project for the last 7 days, or for a specific date range if provided.
+name: fptr-weekly-update
+description: Generates a summary of asset changes in a given Flow PTR project for the last 7 days, or for a specific date range if provided.
 ---
 
-Generate a summary of recent changes in a Forma project using the available MCP tools.
+Generate a summary of recent asset changes in a Flow PTR project using the available MCP tools.
 
 ## Instructions
 
-1. If the user has not specified a project, use `list-hubs-projects` to show available projects and ask which one to summarise.
-2. Use `list-folder-contents` to recursively browse the project's folder structure.
-3. Filter items to those modified within the requested time range:
+1. If the user has not specified a project, use `list-projects` to show available projects and ask which one to summarise.
+2. Use `list-project-assets` to list the assets in the project.
+3. Filter results to those modified within the requested time range:
    - Default: last 7 days from today
    - If the user provides a date range (e.g. "between May 1 and May 15"), use that range instead
-4. Group results by folder. For each modified item, include:
-   - File name
+4. Group results by assets. For each modified item, include:
+   - Asset name
+   - Asset type
+   - Asset status
    - Who modified it
    - When it was modified
 5. Present the output as a readable summary, for example:
@@ -75,11 +77,7 @@ Generate a summary of recent changes in a Forma project using the available MCP 
 ## Weekly Update — [Project Name]
 Period: [start date] to [end date]
 
-### [Folder Name]
-- **[File Name]** — modified by [User] on [Date]
-- ...
-
-### [Another Folder]
+- **[Asset Name]** ([Asset Type], [Asset Status]) — modified by [User] on [Date]
 - ...
 ```
 
@@ -95,7 +93,7 @@ Confirm your skill file is in the right place:
 ```text
 .github/
 └── skills/
-    └── forma-weekly-update/
+    └── fptr-weekly-update/
         └── SKILL.md
 ```
 
@@ -106,12 +104,12 @@ Confirm your skill file is in the right place:
 3. Type the following prompt:
 
    ```text
-   Use the forma-weekly-update skill to summarise changes in my project.
+   Use the fptr-weekly-update skill to summarise changes in my project.
    ```
 
-4. Copilot will discover the skill, call `list-hubs-projects` to show your available projects, and then walk through the folder tree to produce a summary.
+4. Copilot will discover the skill, call `list-projects` to show your available projects, and then list its assets to produce a summary.
 
-> **Skill not detected?** Type `/` in the Copilot Chat input — registered skills appear in the suggestions list alongside built-in commands. If `/forma-weekly-update` isn't there, double-check the folder name (`.github/skills/forma-weekly-update/`) and the `name:` value in the frontmatter, then reload the VS Code window.
+> **Skill not detected?** Type `/` in the Copilot Chat input — registered skills appear in the suggestions list alongside built-in commands. If `/fptr-weekly-update` isn't there, double-check the folder name (`.github/skills/fptr-weekly-update/`) and the `name:` value in the frontmatter, then reload the VS Code window.
 
 ## Where next?
 
