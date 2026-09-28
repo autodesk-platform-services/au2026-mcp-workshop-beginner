@@ -12,7 +12,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI 
 
 - [Prerequisites](0-prerequisites.md)
 - [Part 1: Project Setup](1-project-setup.md)
-- [Part 2: APS & Authentication](2-aps-auth.md)
+- [Part 2: Flow PTR & Authentication](2-aps-auth.md)
 - [Part 3: MCP Server & Tools](3-mcp-tools.md)
 - [Part 4: Agent Skill](4-agent-skill.md)
 - [Extras](extras.md)

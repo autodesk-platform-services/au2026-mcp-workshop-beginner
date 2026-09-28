@@ -20,12 +20,13 @@ Next, add your Flow PTR script credentials:
 
 1. From the repository page, click the **Settings** tab.
 2. In the left sidebar, look for the **Security and quality** block, expand **Secrets and variables**, and click **Codespaces**.
-3. Click **New repository secret** and add the following two secrets:
+3. Click **New repository secret** and add the following three secrets:
 
 | Name | Value |
 | --- | --- |
 | `FPTR_SCRIPT_NAME` | Your Flow PTR Script's name |
 | `FPTR_SCRIPT_KEY` | Your Flow PTR Script's Application Key |
+| `FPTR_SITE_URL` | Your Flow PTR site's base URL, e.g. `https://yourteam.shotgrid.autodesk.com` |
 
 > **Where do I find these values?** Ask the Flow PTR administrator who created the Script for you — see [Access to Flow Production Tracking](0-prerequisites.md#access-to-flow-production-tracking).
 
@@ -56,14 +57,12 @@ Create `package.json` in the project root with the following content:
 {
   "name": "mcp-fptr-workshop-beginner",
   "version": "1.0.0",
-  "description": "APS MCP Workshop — Beginner Session",
+  "description": "Flow PTR MCP Workshop — Beginner Session",
   "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@aps_sdk/authentication": "^1.0.0",
-    "@aps_sdk/data-management": "^1.1.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "zod": "^4.4.0"
   }
@@ -115,7 +114,7 @@ console.log('FPTR_SCRIPT_NAME:', process.env.FPTR_SCRIPT_NAME);
 You should now have:
 
 - [x] A private GitHub repository named `mcp-fptr-workshop-beginner`
-- [x] `FPTR_SCRIPT_NAME` and `FPTR_SCRIPT_KEY` configured as Codespace secrets
+- [x] `FPTR_SCRIPT_NAME`, `FPTR_SCRIPT_KEY`, and `FPTR_SITE_URL` configured as Codespace secrets
 - [x] A running Codespace with dependencies installed
 - [x] A `.gitignore` keeping `node_modules/` out of version control
 

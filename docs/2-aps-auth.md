@@ -1,51 +1,35 @@
-# Part 2: APS & Authentication
+# Part 2: Flow PTR & Authentication
 
-In this section you will build the APS integration layer for your project. By the end you will have an `aps.js` module with a reusable authentication provider and two data helpers, plus a temporary `index.js` that lists all of your Autodesk Forma hubs and projects as JSON. That output proves your credentials work and that you can talk to APS.
+In this section you will build the Flow PTR integration layer for your project. By the end you will have an `fptr.js` module with a reusable authentication provider and two data helpers, plus a temporary `index.js` that lists all of your Flow Production Tracking projects as JSON. That output proves your credentials work and that you can talk to Flow PTR.
 
 ## Theory
 
-### The APS Data Management API
+### The Flow PTR REST API
 
-The [APS Data Management API](https://aps.autodesk.com/en/docs/data/v2/overview/) organises your files in a hierarchy: **Hubs → Projects → Folders → Items → Versions**. A Hub is typically your company's Forma or Fusion account. Projects live inside hubs. Folders and Items — files, drawings, models — live inside projects. Everything in this hierarchy is identified by a unique ID.
+The [Flow PTR REST API](https://developers.shotgridsoftware.com/rest-api/) is flat, not hierarchical: **Projects** contain entities such as **Assets**, **Shots**, and **Tasks** directly — there is no Hub or Folder layer to walk through first. Every entity has a numeric `id`, a `type`, and an `attributes` object holding its fields. This workshop only needs two entity types: `projects` and `assets`.
 
-### 2-legged OAuth (client credentials)
+### Script authentication (client credentials)
 
-APS uses OAuth 2.0 to protect its APIs. There are two common flows:
+Flow PTR issues bearer tokens through a `client_credentials` grant: you exchange a **Script Name** and **Application Key** for a short-lived access token, and no user has to sign in. This is the right choice for server-to-server access, where the server acts as itself with the fixed permissions its permission group was given — exactly what the [prerequisites](0-prerequisites.md) set up with a read-only Script.
 
-- **2-legged (client credentials):** Your application authenticates *as itself* using a client ID and secret. No user has to log in. This is the right choice for server-to-server access where you own the data or have been given service-account access to a hub.
-- **3-legged (authorization code):** A real user is redirected to Autodesk's login page and grants consent. Your app then receives a token scoped to *that user's* data.
-
-For this workshop we start with 2-legged. Your credentials are already stored as Codespace secrets (`APS_CLIENT_ID` and `APS_CLIENT_SECRET`), so the only thing your code needs to do is exchange them for a short-lived access token whenever it needs to call an API.
+Every site is a separate tenant, so requests also need a **site URL** (`https://yourteam.shotgrid.autodesk.com`) — there is no shared base URL the way APS has one.
 
 ### The authentication provider pattern
 
-Rather than requesting a new token for every API call — or, worse, passing raw tokens around as function arguments — we will create a small object called an **authentication provider**. The rest of the code never touches tokens directly. It calls `provider.getAccessToken()` and receives a valid token.
+Rather than requesting a new token for every API call — or, worse, passing raw tokens around as function arguments — you will create a small object called an **authentication provider**. The rest of the code never touches tokens directly. It calls `provider.getAccessToken()` and receives a valid token.
 
-> **Design note:** In the advanced session of this workshop, participants swap the 2-legged provider for a 3-legged (user-level) provider. Because everything downstream only depends on the `getAccessToken()` interface, *not a single other line of code changes*. Building the abstraction now means the payoff is visible later.
+> **Design note:** Later sessions swap this Script-based provider for a per-user one. Because everything downstream only depends on the `getAccessToken()` interface, *not a single other line of code changes*. Building the abstraction now means the payoff is visible later.
 
 ## Step 1: Authentication provider
 
-Create a new file called `aps.js` in the project root. Start with a pair of import statements and a skeleton comment so you know what you are about to build:
+Create a new file called `fptr.js` in the project root. Node's built-in `fetch` is all you need — there is no official Flow PTR SDK for Node.js, so this talks to the REST API directly:
 
 ```js
-import { AuthenticationClient, Scopes } from '@aps_sdk/authentication';
-import { DataManagementClient } from '@aps_sdk/data-management';
-
-const SCOPES = [Scopes.DataRead];
-
-// TODO: implement AppAuthenticationProvider
-```
-
-The `AppAuthenticationProvider` class will have three properties: the client ID, the client secret, and a token cache. The cache stores the last generated token so that it can be reused for as long as it's valid.
-
-Replace the `// TODO` comment with the following class:
-
-```js
-export class AppAuthenticationProvider {
-    constructor(clientId, clientSecret) {
-        this.authClient = new AuthenticationClient();
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
+export class ScriptAuthenticationProvider {
+    constructor(siteUrl, scriptName, scriptKey) {
+        this.siteUrl = siteUrl;
+        this.scriptName = scriptName;
+        this.scriptKey = scriptKey;
         this.cache = {
             accessToken: null,
             expiresAt: 0,
@@ -54,7 +38,19 @@ export class AppAuthenticationProvider {
 
     async getAccessToken() {
         if (this.cache.expiresAt < Date.now() + 60 * 1000) { // refresh a minute early to absorb clock skew and request latency
-            const credentials = await this.authClient.getTwoLeggedToken(this.clientId, this.clientSecret, SCOPES);
+            const response = await fetch(`${this.siteUrl}/api/v1.1/auth/access_token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    client_id: this.scriptName,
+                    client_secret: this.scriptKey,
+                    grant_type: 'client_credentials',
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`Flow PTR authentication failed: ${response.status} ${response.statusText}`);
+            }
+            const credentials = await response.json();
             this.cache.accessToken = credentials.access_token;
             this.cache.expiresAt = Date.now() + credentials.expires_in * 1000;
         }
@@ -65,74 +61,62 @@ export class AppAuthenticationProvider {
 
 A few things worth noting:
 
-- `SCOPES` is defined once at the module level as `[Scopes.DataRead]`. Centralising it means you only need to change it in one place if you later need additional scopes.
-- `cache` is a plain object with `accessToken` and `expiresAt`. A fresh token is fetched whenever `expiresAt` is less than a minute away — on first call, or once the token is close to expiring. That one-minute margin is what the comment above `getAccessToken()` refers to.
-- `getAccessToken()` takes no arguments — the scopes are fixed by the module-level constant, which is intentional for a 2-legged server-to-server integration.
+- `siteUrl` is stored on the provider itself, not just the credentials. Every request — the token exchange and every data call — needs it, and Flow PTR has no fixed base URL the way APS does.
+- `cache` is a plain object with `accessToken` and `expiresAt`. A fresh token is fetched whenever `expiresAt` is less than a minute away — on first call, or once the token is close to expiring.
+- The response also includes a `refresh_token`, valid for 24 hours. This workshop ignores it and just requests a fresh token with the same Script credentials once the cached one expires — simpler, and the credentials never change anyway.
 
-## Step 2: List hubs & projects
+## Step 2: List projects
 
-This helper creates a `DataManagementClient` backed by your authentication provider, fetches all hubs, then fetches the projects inside each hub, and returns a clean array of objects. Add it in the `aps.js` file after the `AppAuthenticationProvider` class:
+This helper calls `/entity/projects` and returns a clean array of plain objects. Add it in the `fptr.js` file after `ScriptAuthenticationProvider`:
 
 ```js
-export async function getHubsProjects(authenticationProvider) {
-    const client = new DataManagementClient({ authenticationProvider });
-    const { data: hubs = [] } = await client.getHubs();
-    return Promise.all(hubs.map(async hub => {
-        const { data: projects = [] } = await client.getHubProjects(hub.id);
-        return {
-            id: hub.id,
-            name: hub.attributes.name,
-            region: hub.attributes.region,
-            projects: projects.map(p => ({ id: p.id, name: p.attributes.name }))
-        };
-    }));
+export async function getProjects(authenticationProvider) {
+    const token = await authenticationProvider.getAccessToken();
+    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/projects?fields=name`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    const { data: projects = [] } = await response.json();
+    return projects.map(p => ({ id: p.id, name: p.attributes.name }));
 }
 ```
 
-Notice that `DataManagementClient` receives `{ authenticationProvider }` — the SDK calls `getAccessToken` internally whenever it needs a token. You never see the raw token string outside of the provider class. `Promise.all` fetches the projects for every hub concurrently. The destructuring assignment with default values (`= []`) keeps the code compact when a hub has no projects.
+`fields=name` keeps the response small — without it, Flow PTR returns every field the Script can see. `data` is the array the REST API wraps every entity list in; the destructuring default (`= []`) keeps the code compact if the Script has no project access yet.
 
-## Step 3: List folder contents
+## Step 3: List project assets
 
-This helper returns the contents of a folder, or — when no `folderId` is given — the top-level folders of a project. It is not used in this section, but it will be needed when you build the MCP server later. Add it in the `aps.js` file after the `getHubsProjects` function:
+This helper returns the assets in a single project. It is not used in this section, but it will be needed when you build the MCP server later. Add it in the `fptr.js` file after `getProjects`:
 
 ```js
-export async function getFolderContents(authenticationProvider, hubId, projectId, folderId) {
-    const client = new DataManagementClient({ authenticationProvider });
-    // TODO: only the first page of results is returned; folders with more than 200 children need pagination via links.next
-    const { data: items = [] } = folderId
-        ? await client.getFolderContents(projectId, folderId)
-        : await client.getProjectTopFolders(hubId, projectId);
-    return items
-        .filter(item => !item.attributes.hidden) // skip entries the Forma UI hides, e.g. system folders
-        .map(item => ({
-            type: item.type,
-            id: item.id,
-            name: item.attributes.displayName,
-            modifiedAt: item.attributes.lastModifiedTime,
-            modifiedBy: item.attributes.lastModifiedUserName
-        }));
+export async function getProjectAssets(authenticationProvider, projectId) {
+    const token = await authenticationProvider.getAccessToken();
+    // TODO: only the first page of results is returned; projects with more than 500 assets need pagination via links.next
+    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project]=${projectId}&fields=code,sg_asset_type`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    const { data: assets = [] } = await response.json();
+    return assets.map(a => ({ id: a.id, name: a.attributes.code, type: a.attributes.sg_asset_type }));
 }
 ```
 
-Projects contain entries the Forma UI keeps out of sight, such as system folders. The API flags them with a `hidden` attribute, and the helper filters them out before mapping. Without that filter the AI would report folders you cannot find anywhere in Forma.
+`filter[project]=<id>` is Flow PTR's simple filter syntax — it scopes the request to a single project's assets. `code` is the asset's name field in Flow PTR (there is no plain `name` field on an Asset), and `sg_asset_type` is the category a studio assigns it, such as character, prop, or environment.
 
 ## Step 4: Update the app
 
-The `index.js` you created previously just printed your credentials. Replace the entire file with this temporary test script — it creates an authentication provider, calls `getHubsProjects`, and dumps the result as JSON:
+The `index.js` you created previously just printed your credentials. Replace the entire file with this temporary test script — it creates an authentication provider, calls `getProjects`, and dumps the result as JSON:
 
 ```js
-import { AppAuthenticationProvider, getHubsProjects } from './aps.js';
+import { ScriptAuthenticationProvider, getProjects } from './fptr.js';
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
-if (!APS_CLIENT_ID || !APS_CLIENT_SECRET) {
-    console.error('APS_CLIENT_ID and APS_CLIENT_SECRET environment variables are required.');
+const { FPTR_SITE_URL, FPTR_SCRIPT_NAME, FPTR_SCRIPT_KEY } = process.env;
+if (!FPTR_SITE_URL || !FPTR_SCRIPT_NAME || !FPTR_SCRIPT_KEY) {
+    console.error('FPTR_SITE_URL, FPTR_SCRIPT_NAME, and FPTR_SCRIPT_KEY environment variables are required.');
     process.exit(1);
 }
-console.log('APS_CLIENT_ID:', APS_CLIENT_ID);
+console.log('FPTR_SCRIPT_NAME:', FPTR_SCRIPT_NAME);
 
-const authenticationProvider = new AppAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
-const hubs = await getHubsProjects(authenticationProvider);
-console.log(JSON.stringify(hubs, null, 2));
+const authenticationProvider = new ScriptAuthenticationProvider(FPTR_SITE_URL, FPTR_SCRIPT_NAME, FPTR_SCRIPT_KEY);
+const projects = await getProjects(authenticationProvider);
+console.log(JSON.stringify(projects, null, 2));
 ```
 
 This code is still temporary. It will be replaced again in the next section when you start building the MCP server.
@@ -141,26 +125,21 @@ This code is still temporary. It will be replaced again in the next section when
 
 You should now have:
 
-- [x] `aps.js` with `AppAuthenticationProvider`, `getHubsProjects`, and `getFolderContents`
-- [x] `index.js` replaced with the hub/project listing script
-- [x] `node index.js` printing a JSON array of your hubs and projects
+- [x] `fptr.js` with `ScriptAuthenticationProvider`, `getProjects`, and `getProjectAssets`
+- [x] `index.js` replaced with the project listing script
+- [x] `node index.js` printing a JSON array of your projects
 
 <details>
     <summary>
-        Reference: full <code>aps.js</code>
+        Reference: full <code>fptr.js</code>
     </summary>
 
 ```js
-import { AuthenticationClient, Scopes } from '@aps_sdk/authentication';
-import { DataManagementClient } from '@aps_sdk/data-management';
-
-const SCOPES = [Scopes.DataRead];
-
-export class AppAuthenticationProvider {
-    constructor(clientId, clientSecret) {
-        this.authClient = new AuthenticationClient();
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
+export class ScriptAuthenticationProvider {
+    constructor(siteUrl, scriptName, scriptKey) {
+        this.siteUrl = siteUrl;
+        this.scriptName = scriptName;
+        this.scriptKey = scriptKey;
         this.cache = {
             accessToken: null,
             expiresAt: 0,
@@ -169,7 +148,19 @@ export class AppAuthenticationProvider {
 
     async getAccessToken() {
         if (this.cache.expiresAt < Date.now() + 60 * 1000) { // refresh a minute early to absorb clock skew and request latency
-            const credentials = await this.authClient.getTwoLeggedToken(this.clientId, this.clientSecret, SCOPES);
+            const response = await fetch(`${this.siteUrl}/api/v1.1/auth/access_token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    client_id: this.scriptName,
+                    client_secret: this.scriptKey,
+                    grant_type: 'client_credentials',
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`Flow PTR authentication failed: ${response.status} ${response.statusText}`);
+            }
+            const credentials = await response.json();
             this.cache.accessToken = credentials.access_token;
             this.cache.expiresAt = Date.now() + credentials.expires_in * 1000;
         }
@@ -177,35 +168,23 @@ export class AppAuthenticationProvider {
     }
 }
 
-export async function getHubsProjects(authenticationProvider) {
-    const client = new DataManagementClient({ authenticationProvider });
-    const { data: hubs = [] } = await client.getHubs();
-    return Promise.all(hubs.map(async hub => {
-        const { data: projects = [] } = await client.getHubProjects(hub.id);
-        return {
-            id: hub.id,
-            name: hub.attributes.name,
-            region: hub.attributes.region,
-            projects: projects.map(p => ({ id: p.id, name: p.attributes.name }))
-        };
-    }));
+export async function getProjects(authenticationProvider) {
+    const token = await authenticationProvider.getAccessToken();
+    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/projects?fields=name`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    const { data: projects = [] } = await response.json();
+    return projects.map(p => ({ id: p.id, name: p.attributes.name }));
 }
 
-export async function getFolderContents(authenticationProvider, hubId, projectId, folderId) {
-    const client = new DataManagementClient({ authenticationProvider });
-    // TODO: only the first page of results is returned; folders with more than 200 children need pagination via links.next
-    const { data: items = [] } = folderId
-        ? await client.getFolderContents(projectId, folderId)
-        : await client.getProjectTopFolders(hubId, projectId);
-    return items
-        .filter(item => !item.attributes.hidden) // skip entries the Forma UI hides, e.g. system folders
-        .map(item => ({
-            type: item.type,
-            id: item.id,
-            name: item.attributes.displayName,
-            modifiedAt: item.attributes.lastModifiedTime,
-            modifiedBy: item.attributes.lastModifiedUserName
-        }));
+export async function getProjectAssets(authenticationProvider, projectId) {
+    const token = await authenticationProvider.getAccessToken();
+    // TODO: only the first page of results is returned; projects with more than 500 assets need pagination via links.next
+    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project]=${projectId}&fields=code,sg_asset_type`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    const { data: assets = [] } = await response.json();
+    return assets.map(a => ({ id: a.id, name: a.attributes.code, type: a.attributes.sg_asset_type }));
 }
 ```
 
@@ -219,31 +198,22 @@ Run the `index.js` script in the terminal:
 node index.js
 ```
 
-If your APS credentials are valid and your application has been provisioned to at least one Forma hub, you should see output like:
+If your Flow PTR credentials are valid, you should see output like:
 
 ```json
 [
-  {
-    "id": "b.xxx",
-    "name": "My Hub",
-    "region": "US",
-    "projects": [
-      { "id": "b.yyy", "name": "My Forma Project" }
-    ]
-  }
+  { "id": 82, "name": "Demo Project" }
 ]
 ```
 
-The actual IDs, hub names, and project names will be specific to your account.
+The actual IDs and project names will be specific to your site.
 
-**If you see an empty array (`[]`):** your application has not been added to any hub yet. In Forma, an administrator must add the application under Hub Admin → Custom Integrations.
+**If you see an empty array (`[]`):** the Script's permission group has no project access yet. Ask your Flow PTR administrator to grant it access to at least one project, as described in the [prerequisites](0-prerequisites.md).
 
-**If you see `AUTH-001 — The client_id specified does not have access to the api product`:** this is the most common first-run failure. The wording points at your credentials, but the cause is the one described above — the application has not been provisioned. Add it to a Forma hub as described in the [prerequisites](0-prerequisites.md), then try again.
-
-**If you see an authentication error:** double-check that `APS_CLIENT_ID` and `APS_CLIENT_SECRET` are set correctly.
+**If you see a `401` or `403` error:** double-check that `FPTR_SITE_URL`, `FPTR_SCRIPT_NAME`, and `FPTR_SCRIPT_KEY` are set correctly, and that the Script hasn't been disabled.
 
 ## Additional resources
 
-- [APS Data Management API overview](https://aps.autodesk.com/en/docs/data/v2/overview/)
-- [APS SDK for Node.js](https://github.com/autodesk-platform-services/aps-sdk-node)
-- [OAuth 2.0 client credentials](https://aps.autodesk.com/en/docs/oauth/v2/tutorials/get-2-legged-token/)
+- [Flow PTR REST API documentation](https://developers.shotgridsoftware.com/rest-api/)
+- [Managing Scripts](https://help.autodesk.com/view/SGDEV/ENU/?guid=SGD_py_python_api_create_manage_html)
+- [Permission groups](https://help.autodesk.com/view/SGDEV/ENU/?guid=SGD_py_python_api_permissions_html)

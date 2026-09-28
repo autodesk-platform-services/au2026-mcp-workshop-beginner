@@ -1,14 +1,12 @@
 {
   "name": "mcp-fptr-workshop-beginner",
   "version": "1.0.0",
-  "description": "APS MCP Workshop — Beginner Session",
+  "description": "Flow PTR MCP Workshop — Beginner Session",
   "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@aps_sdk/authentication": "^1.0.0",
-    "@aps_sdk/data-management": "^1.1.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "zod": "^4.4.0"
   }

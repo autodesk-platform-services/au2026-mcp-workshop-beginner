@@ -10,7 +10,7 @@ Ask your Flow PTR administrator to create a **Script** for this workshop with a 
 
 1. Your Flow PTR admin can review group permissions following the [steps in the documentation](https://help.autodesk.com/view/SGDEV/ENU/?guid=SGD_py_python_api_permissions_html) to limit the access of this script. He can create one with **Read-only** permissions. These are enough for everything this workshop covers — ask for that rather than read/write, so the credential can't modify or delete anything even if it's ever exposed.
 2. Then the admin can [create a new script](https://help.autodesk.com/view/SGDEV/ENU/?guid=SGD_py_python_api_create_manage_html).
-3. Copy the **Script Name** and **Application Key** once you have them — you'll need both during the workshop.
+3. Copy the **Script Name**, **Application Key**, and your Flow PTR **site URL** (e.g. `https://yourteam.shotgrid.autodesk.com`) once you have them — you'll need all three during the workshop.
 
 ## GitHub, Codespaces and JavaScript
 
