@@ -1,18 +1,18 @@
 # Part 1: Project Setup
 
-In this section you'll create a GitHub repository, launch a Codespace, and store your APS credentials as secrets. By the end you'll have verified they're available to your code — everything you need before writing a single line of business logic.
+In this section you'll create a GitHub repository, launch a Codespace, and store your Flow PTR script credentials as secrets. By the end you'll have verified they're available to your code — everything you need before writing a single line of business logic.
 
 ## Step 1: Repository
 
 Create a new GitHub repository:
 
 1. Go to [github.com/new](https://github.com/new).
-2. Set the repository name to `au2026-mcp-workshop-beginner`.
+2. Set the repository name to `mcp-fptr-workshop-beginner`.
 3. Keep the visibility set to **Private**.
 4. Check **Add a README file** so the repository is initialised and has a default branch.
 5. Click **Create repository**.
 
-Next, add your APS credentials:
+Next, add your Flow PTR script credentials:
 
 > Credentials are stored as GitHub Codespace secrets — they are injected as environment variables when a Codespace starts, so you never need to write them to a file.
 
@@ -24,10 +24,10 @@ Next, add your APS credentials:
 
 | Name | Value |
 | --- | --- |
-| `APS_CLIENT_ID` | Your APS application client ID |
-| `APS_CLIENT_SECRET` | Your APS application client secret |
+| `FPTR_SCRIPT_NAME` | Your Flow PTR Script's name |
+| `FPTR_SCRIPT_KEY` | Your Flow PTR Script's Application Key |
 
-> **Where do I find these values?** They are on your application page at [https://aps.autodesk.com](https://aps.autodesk.com) → Developer Hubs → Applications → your app.
+> **Where do I find these values?** Ask the Flow PTR administrator who created the Script for you — see [Access to Flow Production Tracking](0-prerequisites.md#access-to-flow-production-tracking).
 
 ## Step 2: Codespace
 
@@ -54,7 +54,7 @@ Create `package.json` in the project root with the following content:
 
 ```json
 {
-  "name": "au2026-mcp-workshop-beginner",
+  "name": "mcp-fptr-workshop-beginner",
   "version": "1.0.0",
   "description": "APS MCP Workshop — Beginner Session",
   "type": "module",
@@ -98,7 +98,7 @@ node_modules/
 .claude
 ```
 
-This keeps installed dependencies, local environment files, logs, and editor scratch directories out of version control. Your APS credentials live in Codespace secrets rather than in a file, so there is nothing sensitive to commit.
+This keeps installed dependencies, local environment files, logs, and editor scratch directories out of version control. Your Flow PTR script credentials live in Codespace secrets rather than in a file, so there is nothing sensitive to commit.
 
 ## Step 5: Simple app
 
@@ -107,15 +107,15 @@ The code in this file is a quick sanity check — it will be replaced later.
 Create `index.js` in the project root with the following content:
 
 ```js
-console.log('APS_CLIENT_ID:', process.env.APS_CLIENT_ID);
+console.log('FPTR_SCRIPT_NAME:', process.env.FPTR_SCRIPT_NAME);
 ```
 
 ## Checkpoint
 
 You should now have:
 
-- [x] A private GitHub repository named `au2026-mcp-workshop-beginner`
-- [x] `APS_CLIENT_ID` and `APS_CLIENT_SECRET` configured as Codespace secrets
+- [x] A private GitHub repository named `mcp-fptr-workshop-beginner`
+- [x] `FPTR_SCRIPT_NAME` and `FPTR_SCRIPT_KEY` configured as Codespace secrets
 - [x] A running Codespace with dependencies installed
 - [x] A `.gitignore` keeping `node_modules/` out of version control
 
@@ -143,12 +143,12 @@ npm start
 Expected output:
 
 ```bash
-APS_CLIENT_ID: <your-client-id>
+FPTR_SCRIPT_NAME: <your-script-name>
 ```
 
-If you see `APS_CLIENT_ID: undefined`, the secrets were not picked up. The most common cause is that the Codespace was created *before* the secrets were added. Stop the Codespace and create a new one — secrets are only injected at start-up.
+If you see `FPTR_SCRIPT_NAME: undefined`, the secrets were not picked up. The most common cause is that the Codespace was created *before* the secrets were added. Stop the Codespace and create a new one — secrets are only injected at start-up.
 
 ## Additional resources
 
 - [GitHub Codespaces documentation](https://docs.github.com/en/codespaces)
-- [APS getting started guide](https://get-started.aps.autodesk.com/)
+- [Flow PTR REST API documentation](https://developers.shotgridsoftware.com/rest-api/)
