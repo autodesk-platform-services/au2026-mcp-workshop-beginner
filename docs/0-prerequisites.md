@@ -19,7 +19,7 @@ This workshop runs inside a GitHub Codespace using **JavaScript** (a **Python** 
 1. Sign in to [GitHub](https://github.com) (create a free account if needed).
 2. Confirm you have access to **GitHub Codespaces** — available on free accounts with limited hours, and on paid plans.
 
-## Copilot
+## GitHub Copilot
 
 1. Confirm you have access to **GitHub Copilot** — available as an individual subscription or through your organisation. Copilot Free comes with enough tokens to try this workshop.
 

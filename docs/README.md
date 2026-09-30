@@ -1,8 +1,8 @@
 # MCP Workshop: Beginner
 
-*Autodesk Flow*
+*Autodesk Flow PTR*
 
-Welcome to the beginner session of the **Autodesk Platform Services MCP Workshop**.
+Welcome to the beginner session of the Autodesk Flow Production Tracking MCP Workshop.
 
 ## What you'll build
 
