@@ -30,7 +30,7 @@ Vibe coding works best when the prompt names the file you want changed, the shap
 
 - **List tasks** (new tool against a new entity):
 
-  > Add a new MCP tool `list-tasks` in `mcp.js`. It takes a `projectId` (string) and returns tasks from the Flow PTR REST API: `GET {siteUrl}/api/v1.1/entity/tasks?filter[project]=<projectId>&fields=content,sg_status_list`. Reuse the existing `ScriptAuthenticationProvider` in `fptr.js`. Return an array of `{ id, name, status }`, mapping `content` to `name`. Add a short JSDoc-style description so Copilot Chat can discover it.
+  > Add a new MCP tool `list-tasks` in `mcp.js`. It takes a `projectId` (string) and returns tasks from the Flow PTR REST API: `GET {siteUrl}/api/v1.1/entity/tasks?filter[project.Project.id]=<projectId>&fields=content,sg_status_list`. Reuse the existing `ScriptAuthenticationProvider` in `fptr.js`. Return an array of `{ id, name, status }`, mapping `content` to `name`. Add a short JSDoc-style description so Copilot Chat can discover it.
 
 - **Search assets by name** (server-side filtering):
 

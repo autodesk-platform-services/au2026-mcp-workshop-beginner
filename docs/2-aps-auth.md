@@ -91,23 +91,23 @@ export async function getProjectAssets(authenticationProvider, projectId) {
     const token = await authenticationProvider.getAccessToken();
     // TODO: only the first page of results is returned; projects with more than 500 assets need pagination via links.next
     const fields = 'code,sg_asset_type,sg_status_list,updated_at,updated_by';
-    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project]=${projectId}&fields=${fields}`, {
+    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project.Project.id]=${projectId}&fields=${fields}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     });
     const { data: assets = [] } = await response.json();
-    // NOTE: verify updated_by's exact shape against your site's schema (GET /schema/assets/fields) — this assumes a relationship object with a `name`.
+    // updated_by is a JSON:API relationship: { data: { id, name, type }, links }
     return assets.map(a => ({
         id: a.id,
         name: a.attributes.code,
         type: a.attributes.sg_asset_type,
         status: a.attributes.sg_status_list,
         modifiedAt: a.attributes.updated_at,
-        modifiedBy: a.relationships.updated_by?.name
+        modifiedBy: a.relationships.updated_by?.data?.name
     }));
 }
 ```
 
-`filter[project]=<id>` is Flow PTR's simple filter syntax — it scopes the request to a single project's assets. `code` is the asset's name field in Flow PTR (there is no plain `name` field on an Asset), and `sg_asset_type` is the category a studio assigns it, such as character, prop, or environment. `sg_status_list`, `updated_at`, and `updated_by` are what the weekly-update agent skill in [Part 4](4-agent-skill.md) needs — status, and who changed the asset last, and when.
+`filter[project.Project.id]=<id>` is Flow PTR's dot-path filter syntax for linked-entity fields — it scopes the request to a single project's assets. `code` is the asset's name field in Flow PTR (there is no plain `name` field on an Asset), and `sg_asset_type` is the category a studio assigns it, such as character, prop, or environment. `sg_status_list`, `updated_at`, and `updated_by` are what the weekly-update agent skill in [Part 4](4-agent-skill.md) needs — status, and who changed the asset last, and when.
 
 ## Step 4: Update the app
 
@@ -190,18 +190,18 @@ export async function getProjectAssets(authenticationProvider, projectId) {
     const token = await authenticationProvider.getAccessToken();
     // TODO: only the first page of results is returned; projects with more than 500 assets need pagination via links.next
     const fields = 'code,sg_asset_type,sg_status_list,updated_at,updated_by';
-    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project]=${projectId}&fields=${fields}`, {
+    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project.Project.id]=${projectId}&fields=${fields}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     });
     const { data: assets = [] } = await response.json();
-    // NOTE: verify updated_by's exact shape against your site's schema (GET /schema/assets/fields) — this assumes a relationship object with a `name`.
+    // updated_by is a JSON:API relationship: { data: { id, name, type }, links }
     return assets.map(a => ({
         id: a.id,
         name: a.attributes.code,
         type: a.attributes.sg_asset_type,
         status: a.attributes.sg_status_list,
         modifiedAt: a.attributes.updated_at,
-        modifiedBy: a.relationships.updated_by?.name
+        modifiedBy: a.relationships.updated_by?.data?.name
     }));
 }
 ```

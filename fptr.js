@@ -44,17 +44,17 @@ export async function getProjectAssets(authenticationProvider, projectId) {
     const token = await authenticationProvider.getAccessToken();
     // TODO: only the first page of results is returned; projects with more than 500 assets need pagination via links.next
     const fields = 'code,sg_asset_type,sg_status_list,updated_at,updated_by';
-    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project]=${projectId}&fields=${fields}`, {
+    const response = await fetch(`${authenticationProvider.siteUrl}/api/v1.1/entity/assets?filter[project.Project.id]=${projectId}&fields=${fields}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     });
     const { data: assets = [] } = await response.json();
-    // NOTE: verify updated_by's exact shape against your site's schema (GET /schema/assets/fields) — this assumes a relationship object with a `name`.
+    // updated_by is a JSON:API relationship: { data: { id, name, type }, links }
     return assets.map(a => ({
         id: a.id,
         name: a.attributes.code,
         type: a.attributes.sg_asset_type,
         status: a.attributes.sg_status_list,
         modifiedAt: a.attributes.updated_at,
-        modifiedBy: a.relationships.updated_by?.name
+        modifiedBy: a.relationships.updated_by?.data?.name
     }));
 }
