@@ -51,6 +51,8 @@ Vibe coding works best when the prompt names the file you want changed, the shap
 
 You've built a working MCP server. Here's what you'd need to address before shipping it as a real product.
 
+> **Important note:** The workshop code is simplified on purpose. It shows what is possible, sets a good architectural foundation, and keeps the concepts clear. It is not production ready. Review security carefully before you use any of it beyond a learning environment. The table below lists some of the gaps, but it is not exhaustive.
+
 | Area | Workshop state | Production requirement |
 |---|---|---|
 | Transport | STDIO (local process only) | Switch to Streamable HTTP (covered in the advanced session) |

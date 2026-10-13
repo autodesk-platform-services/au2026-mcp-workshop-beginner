@@ -8,6 +8,8 @@ Welcome to the beginner session of the Autodesk Flow Production Tracking MCP Wor
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI clients browse projects and assets in your Autodesk Flow Production Tracking using the [REST API](https://developers.shotgridsoftware.com/rest-api/). By the end of the session you'll also have an agent skill that generates a weekly summary of project activity.
 
+> **Important note:** This is a learning workshop, not a production template. The code is deliberately simplified to show what is possible, to make the concepts clear and to set a solid architectural foundation. For a production deployment, before you ship anything based on it, consider the [production checklist](extras.md#production-checklist).
+
 ## Sessions
 
 - [Prerequisites](0-prerequisites.md)

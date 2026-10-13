@@ -2,6 +2,8 @@
 
 In this section you will build the Flow PTR integration layer for your project. By the end you will have an `fptr.js` module with a reusable authentication provider and two data helpers, plus a temporary `index.js` that lists all of your Flow Production Tracking projects as JSON. That output proves your credentials work and that you can talk to Flow PTR.
 
+> **Important note:** The code in this workshop is simplified for learning. For example, the authentication provider keeps its token in memory and the data helpers do minimal error handling. Treat it as a foundation, not a production implementation. See the [production checklist](extras.md#production-checklist).
+
 ## Theory
 
 ### The Flow PTR REST API
