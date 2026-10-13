@@ -49,6 +49,8 @@ In this workshop we will be using VS Code in the browser but you can also use VS
 
 ![Codespaces options: Code button, Codespaces tab, the "..." menu on your codespace, then Open in Browser or Open in Visual Studio Code](codespaces-options.png)
 
+> **Recommended:** use a Codespace. It needs no local setup. If you prefer, you can run the project locally instead. Clone the repository, install an up-to-date version of Node.js and npm, and create a `.env` file in the project root with the three `FPTR_*` values from Step 1. Then start the server with `node --env-file=.env index.js`.
+
 ## Step 3: Dependencies
 
 Create `package.json` in the project root with the following content:
