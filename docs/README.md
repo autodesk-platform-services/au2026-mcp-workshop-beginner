@@ -1,6 +1,6 @@
 # MCP Workshop: Beginner
 
-*Autodesk Flow PTR*
+*Autodesk Flow Production Tracking · MCP SDK v2 (2026-07-28)*
 
 Welcome to the beginner session of the Autodesk Flow Production Tracking MCP Workshop.
 
